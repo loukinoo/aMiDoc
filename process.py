@@ -9,7 +9,7 @@ from transformers import pipeline
 
  # Per traduzione (o DeepL, o Hugging Face)
 
-
+summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
 pytesseract.pytesseract.tesseract_cmd = r'/opt/homebrew/Cellar/tesseract/5.5.0_1/bin/tesseract' # Assicurati di avere Tesseract installato
 
 def process_document(file_path, target_language='it'):
@@ -32,7 +32,7 @@ def process_document(file_path, target_language='it'):
     # 2. Analisi NLP per estrazione e riassunto
     # Per una soluzione reale, qui useresti un modello fine-tuned
     # In questo esempio, usiamo un modello generico di riassunto
-    summarizer = pipeline("summarization", model="facebook/bart-large-cnn") # Modello generico per riassunto abstractive
+    
     # Oppure per estrazione di informazioni (NER o QA)
     # nlp_model = pipeline("ner", model="dbmdz/bert-base-italian-xxl-uncased") # Esempio per italiano NER
 
