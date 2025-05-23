@@ -1,7 +1,7 @@
-flask
+Flask
 pytesseract
-pdf2image
 transformers
 torch
 Pillow
-deep-translator
+pdf2image
+googletrans==4.0.0rc1
