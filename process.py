@@ -1,9 +1,11 @@
 # Questo è solo uno pseudocodice e un esempio concettuale
 
+from pdf2image import convert_from_path
+import pytesseract
 from PIL import Image
-import pytesseract # Per OCR
-from transformers import pipeline # Per NLP (Hugging Face)
+import os
 from deep_translator import GoogleTranslator
+from transformers import pipeline
 
  # Per traduzione (o DeepL, o Hugging Face)
 
@@ -16,19 +18,17 @@ def process_document(file_path, target_language='it'):
     if file_path.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp')):
         image = Image.open(file_path)
         text = pytesseract.image_to_string(image, lang='ita') # 'ita' per italiano
-    elif file_path.lower().endswith(('.pdf')):
-        # Per PDF, avresti bisogno di librerie come PyPDF2 o pdfminer.six
-        # e poi fare OCR pagina per pagina se il PDF non è testuale
-        # Oppure usare un servizio cloud OCR che gestisce i PDF
-        print("Il supporto PDF richiede librerie aggiuntive o servizi cloud.")
-        return "Errore: Supporto PDF non implementato in questo esempio."
+    elif file_path.lower().endswith('.pdf'):
+        pages = convert_from_path(file_path)
+        for page in pages:
+            text += pytesseract.image_to_string(page, lang='ita') + "\n"
     else: # Assumiamo sia un file di testo puro
         with open(file_path, 'r', encoding='utf-8') as f:
             text = f.read()
 
-    if not text:
+    if not text.strip():
         return "Nessun testo estratto dal documento."
-
+     
     # 2. Analisi NLP per estrazione e riassunto
     # Per una soluzione reale, qui useresti un modello fine-tuned
     # In questo esempio, usiamo un modello generico di riassunto
