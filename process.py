@@ -7,9 +7,12 @@ import os
 from deep_translator import GoogleTranslator
 from transformers import pipeline
 
+os.environ['/Users/lucabagini/aMiDoc'] = os.path.expanduser('~/')
+
+
  # Per traduzione (o DeepL, o Hugging Face)
 
-summarizer = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
+summarizer = pipeline("summarization", model="MBZUAI/LaMini-T5-738M")
 pytesseract.pytesseract.tesseract_cmd = r'/opt/homebrew/Cellar/tesseract/5.5.0_1/bin/tesseract' # Assicurati di avere Tesseract installato
 
 def process_document(file_path, target_language='it'):
@@ -35,7 +38,7 @@ def process_document(file_path, target_language='it'):
     
     # Oppure per estrazione di informazioni (NER o QA)
     # nlp_model = pipeline("ner", model="dbmdz/bert-base-italian-xxl-uncased") # Esempio per italiano NER
-
+    print(text)
     summary_result = summarizer(text, max_length=150, min_length=30, do_sample=False)
     extracted_summary = summary_result[0]['summary_text']
 
