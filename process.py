@@ -1,68 +1,66 @@
-# Questo è solo uno pseudocodice e un esempio concettuale
+# process.py - versione migliorata con pre-elaborazione OCR
 
-from pdf2image import convert_from_path
+from deep_translator import GoogleTranslator
 import pytesseract
 from PIL import Image
-import os
-from deep_translator import GoogleTranslator
 from transformers import pipeline
+from pdf2image import convert_from_path
+import numpy as np
+import cv2
+import os
 
-os.environ['/Users/lucabagini/aMiDoc'] = os.path.expanduser('~/')
+# Configura il path di Tesseract solo se necessario (es. su macOS locale)
+pytesseract.pytesseract.tesseract_cmd = r'/opt/homebrew/bin/tesseract'
 
 
- # Per traduzione (o DeepL, o Hugging Face)
+def preprocess_image_cv(image_path):
+    image = cv2.imread(image_path)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    gray = cv2.medianBlur(gray, 3)
+    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    return thresh
 
-summarizer = pipeline("summarization", model="MBZUAI/LaMini-T5-738M")
-pytesseract.pytesseract.tesseract_cmd = r'/opt/homebrew/Cellar/tesseract/5.5.0_1/bin/tesseract' # Assicurati di avere Tesseract installato
+
+def extract_text_from_image(image_path):
+    preprocessed = preprocess_image_cv(image_path)
+    temp_path = "temp_preprocessed.png"
+    cv2.imwrite(temp_path, preprocessed)
+    text = pytesseract.image_to_string(Image.open(temp_path), lang='ita', config='--psm 6')
+    os.remove(temp_path)
+    return text
+
+
+def extract_text_from_pdf(pdf_path):
+    images = convert_from_path(pdf_path)
+    all_text = []
+    for i, image in enumerate(images):
+        image_path = f"page_{i}.png"
+        image.save(image_path)
+        text = extract_text_from_image(image_path)
+        os.remove(image_path)
+        all_text.append(text)
+    return "\n".join(all_text)
+
 
 def process_document(file_path, target_language='it'):
     text = ""
-    # 1. OCR (se necessario)
     if file_path.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp')):
-        image = Image.open(file_path)
-        text = pytesseract.image_to_string(image, lang='ita') # 'ita' per italiano
+        text = extract_text_from_image(file_path)
     elif file_path.lower().endswith('.pdf'):
-        pages = convert_from_path(file_path)
-        for page in pages:
-            text += pytesseract.image_to_string(page, lang='ita') + "\n"
-    else: # Assumiamo sia un file di testo puro
+        text = extract_text_from_pdf(file_path)
+    else:
         with open(file_path, 'r', encoding='utf-8') as f:
             text = f.read()
 
     if not text.strip():
         return "Nessun testo estratto dal documento."
-     
-    # 2. Analisi NLP per estrazione e riassunto
-    # Per una soluzione reale, qui useresti un modello fine-tuned
-    # In questo esempio, usiamo un modello generico di riassunto
-    
-    # Oppure per estrazione di informazioni (NER o QA)
-    # nlp_model = pipeline("ner", model="dbmdz/bert-base-italian-xxl-uncased") # Esempio per italiano NER
-    print(text)
+
+    summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
     summary_result = summarizer(text, max_length=150, min_length=30, do_sample=False)
     extracted_summary = summary_result[0]['summary_text']
 
-    # Per un modello più specifico, potresti voler fare:
-    # 1. Identificazione del tipo di documento
-    # 2. Estrazione di entità specifiche (date, nomi, importi, azioni richieste)
-    # 3. Costruzione di un riassunto strutturato basato sulle entità estratte
+    final_summary = ["Riassunto Generale:", extracted_summary]
 
-    final_summary = []
-    # Esempio di come potresti strutturare l'output se estraessi punti specifici
-    # (Questo richiederebbe un modello NLP molto più specifico addestrato sui tuoi dati)
-    # if "contratto" in text.lower(): # Semplice classificazione per parola chiave
-    #     final_summary.append("Tipo di documento: Contratto di Lavoro")
-    #     final_summary.append("Punti Chiave:")
-    #     final_summary.append("- Data di inizio: [DATA_ESTRATTA]")
-    #     final_summary.append("- Mansioni: [MANSIONI_ESTRATTE]")
-    #     final_summary.append("- Documenti da firmare: [DOCUMENTI_ESTRATTI]")
-    #     # ... e così via
-    # else:
-    final_summary.append("Riassunto Generale:")
-    final_summary.append(extracted_summary)
-
-
-    # 3. Traduzione (se la lingua target è diversa dall'italiano)
     if target_language != 'it':
         translator = GoogleTranslator(source='auto', target=target_language)
         translated_summary_parts = []
@@ -73,16 +71,7 @@ def process_document(file_path, target_language='it'):
                 translated_summary_parts.append(translator.translate(part))
         final_summary = translated_summary_parts
 
-
     return "\n".join(final_summary)
 
-# Esempio di utilizzo:
-# Assumi di avere un file 'documento_isee.txt' o 'contratto.png'
-# summary = process_document('documento_esempio.txt', target_language='en')
-# print(summary)
-
-# summary_spanish = process_document('documento_esempio.txt', target_language='es')
-# print(summary_spanish)
-
-#summary = process_document("test.jpeg", target_language='en')
-#print(summary)
+# Esempio
+# print(process_document("documento.pdf", target_language='it'))
