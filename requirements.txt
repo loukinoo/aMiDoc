@@ -1,7 +1,0 @@
-Flask
-pytesseract
-transformers
-torch
-Pillow
-pdf2image
-googletrans==4.0.0rc1
