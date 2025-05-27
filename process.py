@@ -22,12 +22,17 @@ def preprocess_image_cv(image_path):
 
 
 def extract_text_from_image(image_path):
-    preprocessed = preprocess_image_cv(image_path)
-    temp_path = "temp_preprocessed.png"
-    cv2.imwrite(temp_path, preprocessed)
-    text = pytesseract.image_to_string(Image.open(temp_path), lang='ita', config='--psm 6')
-    os.remove(temp_path)
-    return text
+    if image_path.lower().endswith(('.jpeg')):
+        text = pytesseract.image_to_string(Image.open(image_path), lang='ita', config='--psm 6')
+        return text
+    else:
+        preprocessed = preprocess_image_cv(image_path)
+        temp_path = "temp_preprocessed.png"
+        cv2.imwrite(temp_path, preprocessed)
+        text = pytesseract.image_to_string(Image.open(temp_path), lang='ita', config='--psm 6')
+        os.remove(temp_path)
+        return text
+
 
 
 def extract_text_from_pdf(pdf_path):
@@ -52,8 +57,14 @@ def process_document(file_path, target_language='it'):
         with open(file_path, 'r', encoding='utf-8') as f:
             text = f.read()
 
+    print(text)
+
     if not text.strip():
         return "Nessun testo estratto dal documento."
+    
+    trans = GoogleTranslator(source='auto', target='en')
+    text = trans.translate(text)
+    # 2. Analisi NLP per estrazione e riassunto
 
     summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
     summary_result = summarizer(text, max_length=150, min_length=30, do_sample=False)
@@ -61,15 +72,15 @@ def process_document(file_path, target_language='it'):
 
     final_summary = ["Riassunto Generale:", extracted_summary]
 
-    if target_language != 'it':
-        translator = GoogleTranslator(source='auto', target=target_language)
-        translated_summary_parts = []
-        for part in final_summary:
-            if "Riassunto Generale:" in part:
-                translated_summary_parts.append(part)
-            else:
-                translated_summary_parts.append(translator.translate(part))
-        final_summary = translated_summary_parts
+
+    translator = GoogleTranslator(source='auto', target=target_language)
+    translated_summary_parts = []
+    for part in final_summary:
+        if "Riassunto Generale:" in part:
+            translated_summary_parts.append(part)
+        else:
+            translated_summary_parts.append(translator.translate(part))
+    final_summary = translated_summary_parts
 
     return "\n".join(final_summary)
 
