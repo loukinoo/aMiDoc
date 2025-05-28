@@ -57,8 +57,6 @@ def process_document(file_path, target_language='it'):
         with open(file_path, 'r', encoding='utf-8') as f:
             text = f.read()
 
-    print(text)
-
     if not text.strip():
         return "Nessun testo estratto dal documento."
     
@@ -76,10 +74,7 @@ def process_document(file_path, target_language='it'):
     translator = GoogleTranslator(source='auto', target=target_language)
     translated_summary_parts = []
     for part in final_summary:
-        if "Riassunto Generale:" in part:
-            translated_summary_parts.append(part)
-        else:
-            translated_summary_parts.append(translator.translate(part))
+        translated_summary_parts.append(translator.translate(part))
     final_summary = translated_summary_parts
 
     return "\n".join(final_summary)
